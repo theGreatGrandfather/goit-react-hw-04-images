@@ -1,4 +1,4 @@
-import React, { Component } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { animateScroll as scroll} from 'react-scroll'
@@ -10,104 +10,90 @@ import Modal from './Modal/Modal';
 import Button from './Button/Button';
 import Loader from './Loader/Loader';
 
-export class App extends Component {
-  state = {
-    searchQuery: '',
-    images: [],
-    showModal: false,
-    urlLargeImg: '',
-    loadingPage: 1,
-    allImagesLoaded: false,
-    loader: false
-  };
+export const App = () => {
 
-  async componentDidUpdate(prevProps, prevState) {
-    const prevQuery = prevState.searchQuery;
-    const nextQuery = this.state.searchQuery;
-    const prevPage = prevState.loadingPage;
-    const nextPage = this.state.loadingPage;
+  const [searchQuery, setSearchQuery] = useState('');
+  const [images, setImages] = useState([]);
+  const [showModal, setShowModal] = useState(false);
+  const [urlLargeImg, setUrlLargeImg] = useState('');
+  const [loadingPage, setLadingPage] = useState(1);
+  const [allImagesLoaded, setAllImagesLoaded] = useState(false);
+  const [loader, setLoader] = useState(false);
 
-    if (nextQuery !== prevQuery || nextPage !== prevPage) {
+  useEffect(() => {
+    if (searchQuery === '') {
+      return;
+    }
+    const fetchData = async () => {
       try {
-        this.setState({
-          loader: true
-        });
+        setLoader(true);
+        const resp = await getImages(searchQuery, loadingPage);
+        setImages(prevState => [...prevState, ...resp.hits]);
 
-        const resp = await getImages(nextQuery, nextPage);
+        if (!(loadingPage < Math.ceil(resp.totalHits / 12))) {
+          setAllImagesLoaded(true)
+        }
+        if (resp.hits.length===0) {
+          toast.error(`There is no images find by ${searchQuery} request`);
+        }
 
-        this.setState(prevState => ({
-          images:
-            nextQuery === prevState.searchQuery
-              ? [...prevState.images, ...resp.hits]
-              : [...resp.hits],
-          allImagesLoaded: resp.totalHits === prevState.images.length + resp.hits.length
-        }));
       } catch (error) {
         toast.error(`Something was wrong. Try to refresh the page`);
       } finally {
-        this.setState({
-          loader: false
-        });
+        setLoader(false);
       }
-    }
-  }
-
-  getSearchQuery = query => {
-    this.setState({
-      searchQuery: query,
-      images: [],
-      loadingPage: 1
-    });
+    };
+    fetchData();
+  }, [loadingPage, searchQuery]);
+  
+  const getSearchQuery = query => {
+    setSearchQuery(query);
+    setImages([]);
+    setLadingPage(1);
+    setAllImagesLoaded(false);
+    setShowModal(false);
   };
 
-  getLargeImg = url => {
-    this.setState({
-      urlLargeImg: url
-    });
+  const getLargeImg = url => {
+    setUrlLargeImg(url);
   };
 
-  toggleModal = () => {
-    this.setState(prevState => ({
-      showModal: !prevState.showModal
-    }));
+  const toggleModal = () => {
+    setShowModal(prevState => !prevState);
   };
 
-  changeLoadingPage = () => {
-    this.setState(prevState => ({
-      loadingPage: prevState.loadingPage + 1
-    }));
+  const changeLoadingPage = () => {
+    setLadingPage(prevState => prevState + 1);
     scroll.scrollMore(600);
   };
 
-  render() {
-    return (
-      <>
-        {this.state.loader && <Loader />}
-        {this.state.showModal && (
-          <Modal
-            onClose={this.toggleModal}>
-            <img src={this.state.urlLargeImg} alt='img' />
-          </Modal>
-        )}
+  return (
+    <>
+      {loader && <Loader />}
+      {showModal && (
+        <Modal
+          onClose={toggleModal}>
+          <img src={urlLargeImg} alt='img' />
+        </Modal>
+      )}
 
-        <ToastContainer
-          autoClose={3000}
+      <ToastContainer
+        autoClose={3000}
+      />
+      <Searchbar
+        getSearchQuery={getSearchQuery}
+      />
+      <ImageGallery
+        images={images}
+        getLargeImg={getLargeImg}
+        toggleModal={toggleModal}
+      />
+      {images.length > 0 && !allImagesLoaded && (
+        <Button
+          type='button'
+          onClick={changeLoadingPage}
         />
-        <Searchbar
-          getSearchQuery={this.getSearchQuery}
-        />
-        <ImageGallery
-          images={this.state.images}
-          getLargeImg={this.getLargeImg}
-          toggleModal={this.toggleModal}
-        />
-        {this.state.images.length > 0 && !this.state.allImagesLoaded && (
-          <Button
-            type='button'
-            onClick={this.changeLoadingPage}
-          />
-        )}
-      </>
-    );
-  }
+      )}
+    </>
+  );
 }

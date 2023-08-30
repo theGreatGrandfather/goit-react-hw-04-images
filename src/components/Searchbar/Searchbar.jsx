@@ -1,54 +1,47 @@
 import PropTypes from 'prop-types'
-import React, { Component } from 'react'
+import React, { useState } from 'react'
 import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
 import {Header, SearchForm, SearchFormBtn, SearchInput} from './Searchbar.styled'
 import { FaSearch } from "react-icons/fa";
 
-export class Searchbar extends Component {
-    state = {
-        searchItem:''
-    }
+export const Searchbar =({getSearchQuery})=>  {
+
+    const [searchItem, setSearchItem] = useState('')
     
-    onInputChange = e => {
-        this.setState({
-            searchItem: e.currentTarget.value.toLowerCase()
-        })
+    const onInputChange = e => {
+        setSearchItem(e.currentTarget.value.toLowerCase())
     }
 
-    onFormSubmit = e => {
+    const onFormSubmit = e => {
         e.preventDefault();
 
-        if (this.state.searchItem.trim() === '') {
+        if (searchItem.trim() === '') {
             return toast.error('enter a search term');
         }
-        this.props.getSearchQuery(this.state.searchItem);
-        this.setState({
-            searchItem: ''
-        })
+        getSearchQuery(searchItem);
+        setSearchItem('')
     }
 
-    render() {
 
-        return (
-            <Header>
-                <SearchForm
-                    onSubmit={this.onFormSubmit}
-                >
-                    <SearchFormBtn>
-                        <FaSearch/>
-                    </SearchFormBtn>
-                    <SearchInput
-                        type='text' 
-                        name="searchItem"
-                        value={this.state.searchItem}
-                        onChange={this.onInputChange}
-                    />
-                </SearchForm>
-            </Header>
-        )
-    }
+    return (
+        <Header>
+            <SearchForm
+                onSubmit={onFormSubmit}
+            >
+                <SearchFormBtn>
+                    <FaSearch/>
+                </SearchFormBtn>
+                <SearchInput
+                    type='text' 
+                    name="searchItem"
+                    value={searchItem}
+                    onChange={onInputChange}
+                />
+            </SearchForm>
+        </Header>
+    )
 }
 
 Searchbar.propTypes = {
